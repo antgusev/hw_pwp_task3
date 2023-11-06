@@ -14,27 +14,26 @@ main_soup = bs4.BeautifulSoup(main_html, 'lxml')
 
 
 main_vacancy_list_tag = main_soup.find('main', class_ = 'vacancy-serp-content')
-vacancies_tags = main_vacancy_list_tag.find_all('div', class_ = 'serp-item')
+vacancies_tags = main_vacancy_list_tag.find_all('div', class_ = 'vacancy-serp-item__layout')
 
 parsed_data = []
 
 for vacancy_tag in vacancies_tags:
-    h3_tag = vacancy_tag.find('h3', class_ = 'bloko-header-section-3')
-    a_tag = h3_tag.find('a')
-    link_absolute = a_tag['href']
-    header = h3_tag.text
+    header_tag = vacancy_tag.find('a', class_='serp-item__title')
+    header = header_tag.text
+    link_absolute = header_tag['href']
 
-    span_tag = vacancy_tag.find('span', {'data-qa': 'vacancy-serp__vacancy-compensation'}, class_ = 'bloko-header-section-2')
-    if span_tag in vacancy_tag:
-        salary = span_tag.text
-    else:
+    salary_tag = vacancy_tag.find('span', {'data-qa': 'vacancy-serp__vacancy-compensation'}, class_ = 'bloko-header-section-2')
+    if not salary_tag:
         salary = 'не указана'
+    else:
+        salary = salary_tag.text
 
-    div_tag = vacancy_tag.find('div', class_ = 'vacancy-serp-item__meta-info-company')
-    employer = div_tag.text
+    employer_tag = vacancy_tag.find('a', {'data-qa': 'vacancy-serp__vacancy-employer'})
+    employer = employer_tag.text
 
-    div2_tag = vacancy_tag.find('div', {'data-qa': 'vacancy-serp__vacancy-address'})
-    city = div2_tag.text
+    city_tag = vacancy_tag.find('div', {'data-qa': 'vacancy-serp__vacancy-address'})
+    city = city_tag.text
 
     
     headers_gen2 = fake_headers.Headers(browser='chrome', os='win')
@@ -45,14 +44,19 @@ for vacancy_tag in vacancies_tags:
 
     description_tag = link_soup.find('div', class_ = 'vacancy-description')
     description = description_tag.text.lower()
-    if any([description in descr for descr in main_words]):
-        parsed_data.append({
-        'link': link_absolute,
-        'header': header,
-        'salary': salary,
-        'employer': employer,
-        'city': city
-        })
+    for word in main_words:
+        if word in description:
+            parsed_data.append({
+            'link': link_absolute,
+            # 'header': header,
+            'salary': salary,
+            'employer': employer,
+            'city': city
+            })
+
+# if __name__ == '__main__':
+#     print(json.dumps(parsed_data, ensure_ascii=False))
 
 if __name__ == '__main__':
-    print(json.dumps(parsed_data, ensure_ascii=False))
+    with open ('parsed-data.json', 'w', encoding='utf-8') as file:
+        json.dump(parsed_data, file, ensure_ascii=False)
